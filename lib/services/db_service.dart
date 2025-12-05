@@ -101,7 +101,7 @@ class DatabaseService {
       ''');
 
       // Création de l'admin par défaut
-      await _createDefaultAdmin(txn);
+      await _createDefaultAdmin(db);
     });
 
     print('Base de données créée avec succès!');
@@ -150,7 +150,7 @@ class DatabaseService {
   }
 
   /// Supprime toute la base de données (pour les tests)
-  Future<void> deleteDatabase() async {
+  Future<void> deleteAppDatabase() async {
     final databasePath = await getDatabasesPath();
     final path = join(databasePath, 'task_notes_manager.db');
     await deleteDatabase(path);

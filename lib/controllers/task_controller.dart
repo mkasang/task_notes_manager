@@ -143,6 +143,44 @@ class TaskController extends GetxController {
     }
   }
 
+  Future<bool> updateTaskStatus(int taskId, String status) async {
+    try {
+      Helpers.showLoading('Mise à jour du statut...');
+
+      final success = await _taskService.updateTaskStatus(taskId, status);
+
+      Helpers.hideLoading();
+
+      if (success) {
+        final task = _tasks.firstWhere((t) => t.id == taskId);
+        task.status = status;
+        update(); // Notifie les observateurs
+
+        Helpers.showSnackbar(
+          title: 'Succès',
+          message: 'Statut mis à jour',
+          backgroundColor: Colors.green,
+        );
+        return true;
+      } else {
+        Helpers.showSnackbar(
+          title: 'Erreur',
+          message: 'Erreur lors de la mise à jour',
+          backgroundColor: Colors.red,
+        );
+        return false;
+      }
+    } catch (e) {
+      Helpers.hideLoading();
+      Helpers.showSnackbar(
+        title: 'Erreur',
+        message: 'Erreur: $e',
+        backgroundColor: Colors.red,
+      );
+      return false;
+    }
+  }
+
   // Supprime une tâche
   Future<bool> deleteTask(int taskId) async {
     try {

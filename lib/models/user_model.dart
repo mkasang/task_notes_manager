@@ -1,5 +1,3 @@
-import 'package:get/get.dart';
-
 /// Modèle représentant un utilisateur dans l'application
 /// Cette classe définit la structure des données d'un utilisateur
 class UserModel {
@@ -66,43 +64,5 @@ class UserModel {
       role: role ?? this.role,
       createdAt: createdAt ?? this.createdAt,
     );
-  }
-}
-
-/// Controller GetX pour gérer l'état de l'utilisateur courant
-/// Rx signifie "Reactive" - les changements sont observables
-class UserController extends GetxController {
-  /// Utilisateur courant, null si personne n'est connecté
-  /// Rx<UserModel?> signifie que c'est une valeur observable qui peut être null
-  final Rx<UserModel?> _currentUser = Rx<UserModel?>(null);
-
-  /// Getter pour accéder à l'utilisateur courant
-  UserModel? get currentUser => _currentUser.value;
-
-  /// Getter pour vérifier si un utilisateur est connecté
-  bool get isLoggedIn => _currentUser.value != null;
-
-  /// Getter pour vérifier si l'utilisateur connecté est admin
-  bool get isAdmin => _currentUser.value?.role == 'admin';
-
-  /// Getter pour vérifier si l'utilisateur connecté est un user standard
-  bool get isUser => _currentUser.value?.role == 'user';
-
-  /// Méthode pour connecter un utilisateur
-  void login(UserModel user) {
-    _currentUser.value = user;
-    update(); // Notifie tous les widgets qui observent ce controller
-  }
-
-  /// Méthode pour déconnecter l'utilisateur
-  void logout() {
-    _currentUser.value = null;
-    update();
-  }
-
-  /// Méthode pour mettre à jour les informations de l'utilisateur
-  void updateUser(UserModel user) {
-    _currentUser.value = user;
-    update();
   }
 }

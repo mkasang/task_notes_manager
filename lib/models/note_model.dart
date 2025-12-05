@@ -1,5 +1,3 @@
-import 'package:get/get.dart';
-
 /// Modèle représentant une note personnelle
 /// Les notes sont privées et appartiennent à un utilisateur
 class NoteModel {
@@ -58,40 +56,5 @@ class NoteModel {
       content: content ?? this.content,
       createdAt: createdAt ?? this.createdAt,
     );
-  }
-}
-
-/// Controller GetX pour gérer les notes
-class NoteController extends GetxController {
-  /// Liste observable de toutes les notes
-  final RxList<NoteModel> _notes = <NoteModel>[].obs;
-
-  /// Getter pour accéder à la liste des notes
-  List<NoteModel> get notes => _notes;
-
-  /// Ajouter une nouvelle note
-  void addNote(NoteModel note) {
-    _notes.add(note);
-    update();
-  }
-
-  /// Supprimer une note par son ID
-  void removeNote(int noteId) {
-    _notes.removeWhere((note) => note.id == noteId);
-    update();
-  }
-
-  /// Mettre à jour une note existante
-  void updateNote(NoteModel updatedNote) {
-    final index = _notes.indexWhere((note) => note.id == updatedNote.id);
-    if (index != -1) {
-      _notes[index] = updatedNote;
-      update();
-    }
-  }
-
-  /// Récupérer les notes d'un utilisateur spécifique
-  List<NoteModel> getNotesByUserId(int userId) {
-    return _notes.where((note) => note.userId == userId).toList();
   }
 }
