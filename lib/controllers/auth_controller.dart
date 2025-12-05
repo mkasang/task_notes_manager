@@ -6,53 +6,51 @@ import 'package:task_notes_manager/utils/helpers.dart';
 import 'package:task_notes_manager/routes/app_routes.dart';
 
 class AuthController extends GetxController {
-  final AuthService _authService = AuthService(); // Service d'authentification
-  final Rx<UserModel?> _currentUser = Rx<UserModel?>(
-    null,
-  ); // Utilisateur courant observable
+  final AuthService _authService = AuthService();
+  final Rx<UserModel?> _currentUser = Rx<UserModel?>(null);
 
-  UserModel? get currentUser => _currentUser.value; // Getter pour l'utilisateur
-  bool get isLoggedIn => _currentUser.value != null; // Vérifie si connecté
-  bool get isAdmin => _currentUser.value?.role == 'admin'; // Vérifie si admin
-  bool get isUser =>
-      _currentUser.value?.role == 'user'; // Vérifie si user standard
+  UserModel? get currentUser => _currentUser.value;
+  bool get isLoggedIn => _currentUser.value != null;
+  bool get isAdmin => _currentUser.value?.role == 'admin';
+  bool get isUser => _currentUser.value?.role == 'user';
 
-  // Méthode de connexion
+  // Méthode statique pour obtenir le controller
+  static AuthController get to => Get.find<AuthController>();
+
+  @override
+  void onInit() {
+    super.onInit();
+    print('✅ AuthController initialisé');
+  }
+
   Future<bool> login(String email, String password) async {
     try {
-      Helpers.showLoading('Connexion en cours...'); // Affiche un loader
+      Helpers.showLoading('Connexion en cours...');
 
-      final user = await _authService.login(
-        email,
-        password,
-      ); // Appelle le service
+      final user = await _authService.login(email, password);
+      Helpers.hideLoading();
 
       if (user != null) {
-        _currentUser.value = user; // Stocke l'utilisateur connecté
-        Helpers.hideLoading(); // Cache le loader
+        _currentUser.value = user;
+
+        // Utiliser un délai pour éviter les conflits de navigation
+        await Future.delayed(const Duration(milliseconds: 100));
 
         // Redirection selon le rôle
         if (user.role == 'admin') {
-          Get.offAllNamed(
-            AppRoutes.adminDashboard,
-          ); // Redirige vers dashboard admin
+          Get.offAllNamed(AppRoutes.adminDashboard);
         } else {
-          Get.offAllNamed(
-            AppRoutes.userDashboard,
-          ); // Redirige vers dashboard user
+          Get.offAllNamed(AppRoutes.userDashboard);
         }
 
         Helpers.showSnackbar(
-          // Message de succès
           title: 'Succès',
           message: 'Connexion réussie!',
           backgroundColor: Colors.green,
         );
         return true;
       } else {
-        Helpers.hideLoading();
         Helpers.showSnackbar(
-          // Message d'erreur
           title: 'Erreur',
           message: 'Email ou mot de passe incorrect',
           backgroundColor: Colors.red,
@@ -70,11 +68,14 @@ class AuthController extends GetxController {
     }
   }
 
-  // Méthode de déconnexion
   void logout() {
-    _authService.logout(); // Appelle le service de déconnexion
-    _currentUser.value = null; // Réinitialise l'utilisateur
-    Get.offAllNamed(AppRoutes.login); // Redirige vers la page de connexion
+    _authService.logout();
+    _currentUser.value = null;
+
+    // Utiliser un délai pour éviter les conflits
+    Future.delayed(const Duration(milliseconds: 100), () {
+      Get.offAllNamed(AppRoutes.login);
+    });
 
     Helpers.showSnackbar(
       title: 'Déconnexion',
@@ -83,7 +84,6 @@ class AuthController extends GetxController {
     );
   }
 
-  // Création d'un nouvel utilisateur (admin seulement)
   Future<bool> createUser(String name, String email, String password) async {
     try {
       // Validation des données
@@ -135,11 +135,10 @@ class AuthController extends GetxController {
         name: name,
         email: email,
         password: password,
-        role: 'user', // Toujours user pour les nouvelles créations
+        role: 'user',
       );
 
       final userId = await _authService.register(newUser);
-
       Helpers.hideLoading();
 
       if (userId != null) {
@@ -168,23 +167,36 @@ class AuthController extends GetxController {
     }
   }
 
-  // Récupère tous les utilisateurs (admin seulement)
   Future<List<UserModel>> getAllUsers() async {
     try {
       final users = await _authService.getAllUsers();
-      return users
-          .where((user) => user.id != currentUser?.id)
-          .toList(); // Exclut l'admin connecté
+      // Exclure l'utilisateur courant de la liste
+      final currentUserId = currentUser?.id;
+      if (currentUserId != null) {
+        return users.where((user) => user.id != currentUserId).toList();
+      }
+      return users;
     } catch (e) {
       print('Erreur lors de la récupération des utilisateurs: $e');
       return [];
     }
   }
 
-  // Supprime un utilisateur (admin seulement)
   Future<bool> deleteUser(int userId) async {
     try {
+      final confirm = await Helpers.showConfirmDialog(
+        title: 'Supprimer l\'utilisateur',
+        message: 'Êtes-vous sûr de vouloir supprimer cet utilisateur?',
+        confirmText: 'Supprimer',
+      );
+
+      if (confirm != true) return false;
+
+      Helpers.showLoading('Suppression en cours...');
+
       final success = await _authService.deleteUser(userId);
+      Helpers.hideLoading();
+
       if (success) {
         Helpers.showSnackbar(
           title: 'Succès',
@@ -200,6 +212,7 @@ class AuthController extends GetxController {
       }
       return success;
     } catch (e) {
+      Helpers.hideLoading();
       Helpers.showSnackbar(
         title: 'Erreur',
         message: 'Erreur lors de la suppression: $e',
@@ -209,13 +222,11 @@ class AuthController extends GetxController {
     }
   }
 
-  // Met à jour un utilisateur
   Future<bool> updateUser(UserModel user) async {
     try {
       Helpers.showLoading('Mise à jour en cours...');
 
       final success = await _authService.updateUser(user);
-
       Helpers.hideLoading();
 
       if (success) {
@@ -246,6 +257,15 @@ class AuthController extends GetxController {
         backgroundColor: Colors.red,
       );
       return false;
+    }
+  }
+
+  Future<UserModel?> getUserById(int userId) async {
+    try {
+      return await _authService.getUserById(userId);
+    } catch (e) {
+      print('Erreur lors de la récupération de l\'utilisateur: $e');
+      return null;
     }
   }
 }

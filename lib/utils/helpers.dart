@@ -29,75 +29,92 @@ class Helpers {
     return emailRegex.hasMatch(email);
   }
 
-  // Afficher un snackbar
+  // Méthodes sécurisées pour éviter les erreurs pendant le build
+
+  // Afficher un snackbar de manière sécurisée
   static void showSnackbar({
     required String title,
     required String message,
     Color backgroundColor = Colors.blue,
     Duration duration = const Duration(seconds: 3),
   }) {
-    Get.snackbar(
-      title,
-      message,
-      snackPosition: SnackPosition.BOTTOM,
-      backgroundColor: backgroundColor.withOpacity(0.9),
-      colorText: Colors.white,
-      duration: duration,
-      margin: const EdgeInsets.all(10),
-      borderRadius: 8,
-    );
+    // Utiliser addPostFrameCallback pour éviter les erreurs pendant le build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Get.snackbar(
+        title,
+        message,
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: backgroundColor.withOpacity(0.9),
+        colorText: Colors.white,
+        duration: duration,
+        margin: const EdgeInsets.all(10),
+        borderRadius: 8,
+      );
+    });
   }
 
-  // Afficher un dialogue de confirmation
+  // Afficher un dialogue de confirmation de manière sécurisée
   static Future<bool?> showConfirmDialog({
     required String title,
     required String message,
     String confirmText = 'Confirmer',
     String cancelText = 'Annuler',
   }) async {
-    return await Get.dialog<bool>(
-      AlertDialog(
-        title: Text(title),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Get.back(result: false),
-            child: Text(cancelText),
-          ),
-          ElevatedButton(
-            onPressed: () => Get.back(result: true),
-            child: Text(confirmText),
-          ),
-        ],
-      ),
-    );
+    return await Future.delayed(Duration.zero, () async {
+      return await Get.dialog<bool>(
+        AlertDialog(
+          title: Text(title),
+          content: Text(message),
+          actions: [
+            TextButton(
+              onPressed: () => Get.back(result: false),
+              child: Text(cancelText),
+            ),
+            ElevatedButton(
+              onPressed: () => Get.back(result: true),
+              child: Text(confirmText),
+            ),
+          ],
+        ),
+      );
+    });
   }
 
-  // Afficher un dialogue de chargement
+  // Afficher un dialogue de chargement de manière sécurisée
   static void showLoading([String? message]) {
-    Get.dialog(
-      Dialog(
-        child: Padding(
-          padding: const EdgeInsets.all(20.0),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const CircularProgressIndicator(),
-              const SizedBox(width: 20),
-              Text(message ?? 'Chargement...'),
-            ],
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (Get.isDialogOpen ?? false) return;
+
+      Get.dialog(
+        Dialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const CircularProgressIndicator(),
+                const SizedBox(width: 20),
+                Text(message ?? 'Chargement...'),
+              ],
+            ),
           ),
         ),
-      ),
-      barrierDismissible: false,
-    );
+        barrierDismissible: false,
+      );
+    });
   }
 
-  // Cacher le dialogue de chargement
+  // Cacher le dialogue de chargement de manière sécurisée
   static void hideLoading() {
-    if (Get.isDialogOpen ?? false) {
-      Get.back();
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (Get.isDialogOpen ?? false) {
+        Get.back();
+      }
+    });
   }
 
   // Vérifier si une chaîne est vide ou null
@@ -189,5 +206,15 @@ class Helpers {
       return 'Le mot de passe doit contenir au moins 3 caractères';
     }
     return null;
+  }
+
+  // Méthode pour attendre le prochain frame
+  static Future<void> waitForNextFrame() async {
+    await Future.delayed(Duration.zero);
+  }
+
+  // Méthode pour exécuter après le build
+  static void executeAfterBuild(VoidCallback callback) {
+    WidgetsBinding.instance.addPostFrameCallback((_) => callback());
   }
 }

@@ -52,7 +52,7 @@ class _ManageUsersViewState extends State<ManageUsersView>
   }
 
   Future<void> _loadUsers() async {
-    await _adminController.loadAllUsers(_authController);
+    await _adminController.loadAllUsers();
   }
 
   List<dynamic> _getFilteredUsers() {

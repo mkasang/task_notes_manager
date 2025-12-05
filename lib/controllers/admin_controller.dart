@@ -7,22 +7,28 @@ import 'package:task_notes_manager/services/comment_service.dart';
 import 'package:task_notes_manager/utils/helpers.dart';
 
 class AdminController extends GetxController {
-  final CommentService _commentService =
-      CommentService(); // Service des commentaires
-  final RxList<UserModel> _users =
-      <UserModel>[].obs; // Liste observable des utilisateurs
-  final RxList<CommentModel> _comments =
-      <CommentModel>[].obs; // Liste observable des commentaires
+  final CommentService _commentService = CommentService();
+  final RxList<UserModel> _users = <UserModel>[].obs;
+  final RxList<CommentModel> _comments = <CommentModel>[].obs;
 
-  List<UserModel> get users => _users; // Getter pour tous les utilisateurs
-  List<CommentModel> get comments =>
-      _comments; // Getter pour tous les commentaires
+  List<UserModel> get users => _users;
+  List<CommentModel> get comments => _comments;
 
-  // Charge tous les utilisateurs
-  Future<void> loadAllUsers(AuthController authController) async {
+  static AdminController get to => Get.find<AdminController>();
+
+  @override
+  void onInit() {
+    super.onInit();
+    print('✅ AdminController initialisé');
+  }
+
+  // Charge tous les utilisateurs (sans AuthController en paramètre)
+  Future<void> loadAllUsers() async {
     try {
       Helpers.showLoading('Chargement des utilisateurs...');
 
+      // Récupérer les utilisateurs via AuthController
+      final authController = AuthController.to;
       final allUsers = await authController.getAllUsers();
       _users.assignAll(allUsers);
 
@@ -31,9 +37,19 @@ class AdminController extends GetxController {
       Helpers.hideLoading();
       Helpers.showSnackbar(
         title: 'Erreur',
-        message: 'Erreur lors du chargement: $e',
+        message: 'Erreur lors du chargement des utilisateurs: $e',
         backgroundColor: Colors.red,
       );
+    }
+  }
+
+  // Charge les commentaires d'une tâche
+  Future<void> loadCommentsForTask(int taskId) async {
+    try {
+      final taskComments = await _commentService.getCommentsByTaskId(taskId);
+      _comments.assignAll(taskComments);
+    } catch (e) {
+      print('Erreur lors du chargement des commentaires: $e');
     }
   }
 
@@ -58,12 +74,11 @@ class AdminController extends GetxController {
       );
 
       final commentId = await _commentService.addComment(newComment);
-
       Helpers.hideLoading();
 
       if (commentId != null) {
         newComment.id = commentId;
-        _comments.add(newComment); // Ajoute à la liste
+        _comments.add(newComment);
 
         Helpers.showSnackbar(
           title: 'Succès',
@@ -75,60 +90,6 @@ class AdminController extends GetxController {
         Helpers.showSnackbar(
           title: 'Erreur',
           message: 'Erreur lors de l\'ajout',
-          backgroundColor: Colors.red,
-        );
-        return false;
-      }
-    } catch (e) {
-      Helpers.hideLoading();
-      Helpers.showSnackbar(
-        title: 'Erreur',
-        message: 'Erreur: $e',
-        backgroundColor: Colors.red,
-      );
-      return false;
-    }
-  }
-
-  // Charge les commentaires d'une tâche
-  Future<void> loadCommentsForTask(int taskId) async {
-    try {
-      final taskComments = await _commentService.getCommentsByTaskId(taskId);
-      _comments.assignAll(taskComments);
-    } catch (e) {
-      print('Erreur lors du chargement des commentaires: $e');
-    }
-  }
-
-  // Supprime un commentaire
-  Future<bool> deleteComment(int commentId) async {
-    try {
-      final confirm = await Helpers.showConfirmDialog(
-        title: 'Confirmer la suppression',
-        message: 'Voulez-vous vraiment supprimer ce commentaire?',
-      );
-
-      if (confirm != true) return false;
-
-      Helpers.showLoading('Suppression en cours...');
-
-      final success = await _commentService.deleteComment(commentId);
-
-      Helpers.hideLoading();
-
-      if (success) {
-        _comments.removeWhere((comment) => comment.id == commentId);
-
-        Helpers.showSnackbar(
-          title: 'Succès',
-          message: 'Commentaire supprimé',
-          backgroundColor: Colors.green,
-        );
-        return true;
-      } else {
-        Helpers.showSnackbar(
-          title: 'Erreur',
-          message: 'Erreur lors de la suppression',
           backgroundColor: Colors.red,
         );
         return false;
@@ -159,7 +120,6 @@ class AdminController extends GetxController {
       Helpers.showLoading('Mise à jour en cours...');
 
       final success = await _commentService.updateComment(comment);
-
       Helpers.hideLoading();
 
       if (success) {
@@ -193,10 +153,62 @@ class AdminController extends GetxController {
     }
   }
 
-  // Récupère un utilisateur par ID
+  // Supprime un commentaire
+  Future<bool> deleteComment(int commentId) async {
+    try {
+      final confirm = await Helpers.showConfirmDialog(
+        title: 'Confirmer la suppression',
+        message: 'Voulez-vous vraiment supprimer ce commentaire?',
+      );
+
+      if (confirm != true) return false;
+
+      Helpers.showLoading('Suppression en cours...');
+
+      final success = await _commentService.deleteComment(commentId);
+      Helpers.hideLoading();
+
+      if (success) {
+        _comments.removeWhere((comment) => comment.id == commentId);
+
+        Helpers.showSnackbar(
+          title: 'Succès',
+          message: 'Commentaire supprimé',
+          backgroundColor: Colors.green,
+        );
+        return true;
+      } else {
+        Helpers.showSnackbar(
+          title: 'Erreur',
+          message: 'Erreur lors de la suppression',
+          backgroundColor: Colors.red,
+        );
+        return false;
+      }
+    } catch (e) {
+      Helpers.hideLoading();
+      Helpers.showSnackbar(
+        title: 'Erreur',
+        message: 'Erreur: $e',
+        backgroundColor: Colors.red,
+      );
+      return false;
+    }
+  }
+
+  // Récupère un utilisateur par son ID
   UserModel? getUserById(int userId) {
     try {
       return _users.firstWhere((user) => user.id == userId);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // Récupère un commentaire par son ID
+  CommentModel? getCommentById(int commentId) {
+    try {
+      return _comments.firstWhere((comment) => comment.id == commentId);
     } catch (e) {
       return null;
     }
@@ -218,5 +230,10 @@ class AdminController extends GetxController {
   // Vide la liste des commentaires
   void clearComments() {
     _comments.clear();
+  }
+
+  // Récupère les commentaires d'une tâche
+  List<CommentModel> getCommentsByTaskId(int taskId) {
+    return _comments.where((comment) => comment.taskId == taskId).toList();
   }
 }

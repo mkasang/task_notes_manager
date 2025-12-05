@@ -15,7 +15,7 @@ class AdminDashboard extends StatefulWidget {
 }
 
 class _AdminDashboardState extends State<AdminDashboard>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   final AuthController _authController = Get.find();
   final TaskController _taskController = Get.find();
   final AdminController _adminController = Get.find();
@@ -59,7 +59,7 @@ class _AdminDashboardState extends State<AdminDashboard>
   Future<void> _loadData() async {
     // Charge toutes les données admin
     await _taskController.loadAllTasks();
-    await _adminController.loadAllUsers(_authController);
+    await _adminController.loadAllUsers();
   }
 
   void _refreshData() async {
@@ -144,7 +144,7 @@ class _AdminDashboardState extends State<AdminDashboard>
                         emailController.text,
                         passwordController.text,
                       );
-                      await _adminController.loadAllUsers(_authController);
+                      await _adminController.loadAllUsers();
                       Get.back();
                     }
                   },
@@ -645,7 +645,7 @@ class _AdminDashboardState extends State<AdminDashboard>
       }
 
       return RefreshIndicator(
-        onRefresh: () => _adminController.loadAllUsers(_authController),
+        onRefresh: () => _adminController.loadAllUsers(),
         child: ListView.builder(
           padding: const EdgeInsets.all(16),
           itemCount: users.length,
@@ -1022,7 +1022,7 @@ class _AdminDashboardState extends State<AdminDashboard>
                           : user.password,
                     );
                     await _authController.updateUser(updatedUser);
-                    await _adminController.loadAllUsers(_authController);
+                    await _adminController.loadAllUsers();
                     Get.back();
                   },
                   child: const Text('Enregistrer'),
@@ -1046,7 +1046,7 @@ class _AdminDashboardState extends State<AdminDashboard>
     if (confirm == true) {
       final success = await _authController.deleteUser(user.id!);
       if (success) {
-        await _adminController.loadAllUsers(_authController);
+        await _adminController.loadAllUsers();
       }
     }
   }

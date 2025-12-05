@@ -5,28 +5,29 @@ import 'package:task_notes_manager/services/note_service.dart';
 import 'package:task_notes_manager/utils/helpers.dart';
 
 class NoteController extends GetxController {
-  final NoteService _noteService = NoteService(); // Service des notes
-  final RxList<NoteModel> _notes =
-      <NoteModel>[].obs; // Liste observable des notes
+  final NoteService _noteService = NoteService();
+  final RxList<NoteModel> _notes = <NoteModel>[].obs;
 
-  List<NoteModel> get notes => _notes; // Getter pour toutes les notes
+  List<NoteModel> get notes => _notes;
+
+  static NoteController get to => Get.find<NoteController>();
+
+  @override
+  void onInit() {
+    super.onInit();
+    print('✅ NoteController initialisé');
+  }
 
   // Charge les notes d'un utilisateur
   Future<void> loadUserNotes(int userId) async {
     try {
       Helpers.showLoading('Chargement des notes...');
-
       final userNotes = await _noteService.getNotesByUserId(userId);
       _notes.assignAll(userNotes);
-
       Helpers.hideLoading();
     } catch (e) {
       Helpers.hideLoading();
-      Helpers.showSnackbar(
-        title: 'Erreur',
-        message: 'Erreur lors du chargement: $e',
-        backgroundColor: Colors.red,
-      );
+      print('Erreur lors du chargement des notes: $e');
     }
   }
 
@@ -56,12 +57,11 @@ class NoteController extends GetxController {
       final newNote = NoteModel(userId: userId, title: title, content: content);
 
       final noteId = await _noteService.createNote(newNote);
-
       Helpers.hideLoading();
 
       if (noteId != null) {
         newNote.id = noteId;
-        _notes.insert(0, newNote); // Ajoute au début
+        _notes.insert(0, newNote);
 
         Helpers.showSnackbar(
           title: 'Succès',
@@ -94,13 +94,12 @@ class NoteController extends GetxController {
       Helpers.showLoading('Mise à jour en cours...');
 
       final success = await _noteService.updateNote(note);
-
       Helpers.hideLoading();
 
       if (success) {
         final index = _notes.indexWhere((n) => n.id == note.id);
         if (index != -1) {
-          _notes[index] = note; // Met à jour dans la liste
+          _notes[index] = note;
         }
 
         Helpers.showSnackbar(
@@ -141,11 +140,10 @@ class NoteController extends GetxController {
       Helpers.showLoading('Suppression en cours...');
 
       final success = await _noteService.deleteNote(noteId);
-
       Helpers.hideLoading();
 
       if (success) {
-        _notes.removeWhere((note) => note.id == noteId); // Supprime de la liste
+        _notes.removeWhere((note) => note.id == noteId);
 
         Helpers.showSnackbar(
           title: 'Succès',
@@ -173,38 +171,27 @@ class NoteController extends GetxController {
   }
 
   // Recherche dans les notes
-  Future<void> searchNotes(String keyword, int userId) async {
+  Future<List<NoteModel>> searchNotes(String keyword, int userId) async {
     try {
-      if (Helpers.isNullOrEmpty(keyword)) {
-        await loadUserNotes(
-          userId,
-        ); // Recharge toutes les notes si recherche vide
-        return;
-      }
-
-      Helpers.showLoading('Recherche en cours...');
-
-      final results = await _noteService.searchNotes(keyword, userId);
-      _notes.assignAll(results);
-
-      Helpers.hideLoading();
+      return await _noteService.searchNotes(keyword, userId);
     } catch (e) {
-      Helpers.hideLoading();
-      Helpers.showSnackbar(
-        title: 'Erreur',
-        message: 'Erreur lors de la recherche: $e',
-        backgroundColor: Colors.red,
-      );
+      print('Erreur lors de la recherche de notes: $e');
+      return [];
     }
   }
 
-  // Récupère une note par ID
+  // Récupère une note par son ID
   NoteModel? getNoteById(int noteId) {
     try {
       return _notes.firstWhere((note) => note.id == noteId);
     } catch (e) {
       return null;
     }
+  }
+
+  // Récupère les notes d'un utilisateur
+  List<NoteModel> getNotesByUserId(int userId) {
+    return _notes.where((note) => note.userId == userId).toList();
   }
 
   // Compte le nombre de notes

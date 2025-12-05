@@ -1,3 +1,5 @@
+// ignore_for_file: unused_field
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:task_notes_manager/controllers/task_controller.dart';
@@ -20,7 +22,7 @@ class _TaskListViewState extends State<TaskListView>
   late TextEditingController _searchController; // Controller pour la recherche
   late AnimationController
   _animationController; // Controller pour les animations
-  // Animation de fondu
+  late Animation<double> _fadeAnimation; // Animation de fondu
   late Animation<Offset> _slideAnimation; // Animation de glissement
   late Animation<double> _scaleAnimation;
 
@@ -40,6 +42,10 @@ class _TaskListViewState extends State<TaskListView>
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 600),
       vsync: this,
+    );
+
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
 
     _slideAnimation =
